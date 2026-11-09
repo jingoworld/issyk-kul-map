@@ -77,7 +77,7 @@ html,body{height:100%}
   </div>
   <h2>주요 거점</h2>
   <ul id="plist"></ul>
-  <p class="src">경로: OpenStreetMap 등산로를 BRouter로 연결했습니다. 고도는 지형 데이터 기준이라 공식 고도와 조금 다릅니다. 점선은 차량 이동입니다. 시로타와 켈디케 위치는 자료의 고도로 잡은 추정값이라, 현장 GPS로 확인 전까지 안내용으로만 씁니다.</p>
+  <p class="src">경로: OpenStreetMap 등산로를 BRouter로 연결했습니다. 고도는 지형 데이터 기준이라 공식 고도와 조금 다릅니다. 점선은 차량 이동입니다. 시로타와 켈디케 위치는 자료의 고도로 잡은 추정값입니다. 경로는 안내용입니다.</p>
  </aside>
  <div id="mapbox"><div id="map"></div><div id="cursor"></div><button id="layer">위성 지도</button><div id="err"></div></div>
  <section id="prof" aria-label="고도계">
@@ -133,7 +133,7 @@ for(const p of T.pois){
  const pop=new mapboxgl.Popup({offset:18,closeButton:false}).setHTML(`<b>${p.name}</b>${p.ele?`해발 약 ${p.ele.toLocaleString('ko-KR')}m<br>`:''}${p.text}`);
  const m=new mapboxgl.Marker({element:el,anchor:'top'}).setLngLat([p.lng,p.lat]).setPopup(pop).addTo(map);
  const li=document.createElement('li');POIM[p.id]={p,m,el,li};
- li.innerHTML=`<button><span class="pin k-${p.kind}"></span>${p.name}<small>${p.ele?p.ele.toLocaleString('ko-KR')+'m':'고도 확인 중'}</small></button>`;
+ li.innerHTML=`<button><span class="pin k-${p.kind}"></span>${p.name}<small>${p.ele?p.ele.toLocaleString('ko-KR')+'m':''}</small></button>`;
  li.firstChild.onclick=()=>{stopPlay();map.flyTo({center:[p.lng,p.lat],zoom:p.kind==='city'?10:13,pitch:50,duration:1400});m.togglePopup();};
  $('#plist').append(li);
 }

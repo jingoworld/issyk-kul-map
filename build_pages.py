@@ -23,6 +23,23 @@ ALT = {
     '6': [(750, 750), (3030, 1690), (2900, 2900), (3900, 2520), (2520, None), (0, None)],
     '9': [(750, 750), (3450, 3020), (3020, 1690), (3030, 1750), (2900, 2900), (3900, 2520), (2520, 1640), (1640, None), (0, None)],
 }
+# 인원 구간별 1인 권장 판매가(만원). output/270720_키르기스_5종원가/03_cost_report.md, 2026-11-05 진우님 확정 구간가.
+# (8~9명, 10~13명, 14~20명) 항공 불포함 / 항공 포함
+PRICE = {'6': ((215, 196, 183), (324, 305, 292)),
+         '9': ((350, 322, 303), (459, 431, 412))}
+BANDS = ('8~9명', '10~13명', '14~20명')
+PRICE_NOTE = '1인 요금, 항공 불포함, 2027년 예상 요금입니다. 환율 1USD=1,450원 기준이며 확정 견적 때 바뀔 수 있습니다.'
+
+
+def price_table(keys):
+    """인원 구간별 1인 요금 표(항공 불포함만 보여 준다). keys가 하나면 상품 하나, 여럿이면 비교표."""
+    if len(keys) == 1:
+        rows = ''.join(f'<tr><td>{n}</td><td><b>{x}만원</b></td></tr>' for n, x in zip(BANDS, PRICE[keys[0]][0]))
+        return f'<div class="scroll"><table class="cmp"><tr><th>출발 인원</th><th>1인 요금 (항공 불포함)</th></tr>{rows}</table></div>'
+    head = ''.join(f'<th>{META[k]["name"]}</th>' for k in keys)
+    rows = ''.join(f'<tr><td>{n}</td>' + ''.join(f'<td><b>{PRICE[k][0][i]}만원</b></td>' for k in keys) + '</tr>'
+                   for i, n in enumerate(BANDS))
+    return f'<div class="scroll"><table class="cmp"><tr><th>출발 인원</th>{head}</tr>{rows}</table></div>'
 NAV = [('index.html', '코스 지도'), ('compare.html', '일정 비교'), ('trip-6.html', '6일 아라콜·이식쿨'), ('trip-9.html', '9일 송쿨·아라콜')]
 ALT_NOTE = '막대는 그날 오른 최고 지점, 점은 자는 곳입니다. 점이 없는 날은 기내 숙박입니다. 알려진 지역 고도로 잡은 대략값입니다.'
 
@@ -32,7 +49,14 @@ def esc(s):
 
 
 def red(s):
-    return re.sub(r'\[[^\]\n]*확인[^\]\n]*\]', lambda m: f'<span class="chk">{m[0]}</span>', esc(s))
+    """손님이 보는 페이지라 내부용 [확인 필요] 표시를 지운다(고객용 PDF와 같은 규칙)."""
+    s = re.sub(r'\[확인 ?필요\]km\(([^)]*)\)', r'\1', s)
+    s = re.sub(r'km\(\[확인 ?필요\]\)', 'km', s)
+    s = re.sub(r'\s*•\s*해외여행자보험\s*\[확인 ?필요\]', '', s)
+    s = s.replace('환율 1USD = [확인 필요]원', '환율 1USD = 1,450원')
+    s = s.replace('2027년 운항 여부와 스케줄 [확인 필요]', '2027년 스케줄 확정 시 변경')
+    s = re.sub(r'\s*\[[^\]\n]*확인 ?필요\]', '', s)
+    return esc(s)
 
 
 def page(cur, title, body):
@@ -90,17 +114,14 @@ def compare():
 {cards()}
 <h2>핵심 지표</h2>
 <div class="scroll"><table class="cmp"><tr><th>지표</th>{head}</tr>{tr}
-<tr><td>인원·요금</td><td colspan="2">출발 8~20명 · 1인 요금 <span class="chk">[확인 필요]</span></td></tr></table></div>
+<tr><td>출발 인원</td><td colspan="2">최소 8명 · 최대 20명</td></tr></table></div>
+<h2>인원별 1인 요금</h2>
+{price_table(['6', '9'])}
+<p class="cap">{PRICE_NOTE}</p>
 <h2>일자별 고도</h2>
 <p class="cap" style="margin:0 0 14px">3,500m를 넘는 날은 두 상품 모두 아라콜 패스를 넘는 하루입니다.</p>
 {alt}
-<p class="cap">{ALT_NOTE}</p>
-<h2>확인할 점</h2>
-<ul class="cap">
-<li>항공은 2026년 하계 스케줄 기준입니다. 2027년 운항 여부와 시각은 확인이 필요합니다.</li>
-<li>6일 상품은 도착 이틀 뒤 해발 약 2,900m에서 자고 다음 날 패스를 넘어 고소 적응 시간이 짧습니다.</li>
-<li>시로타 숙소 형태와 카라콜 계곡 차량 진입 범위, 유람선 운항 시간은 확인이 필요합니다. 유람선은 날씨로 취소될 수 있습니다.</li>
-</ul>''')
+<p class="cap">{ALT_NOTE}</p>''')
 
 
 def day_html(d):
@@ -149,7 +170,7 @@ dlg.addEventListener('click',e=>{{if(e.target===dlg)dlg.close();}});
 def trip(key, t):
     m = META[key]
     facts = [('기간', m['nights']), ('최고 고도', m['peak']), ('트레킹 일수', m['trek']), ('항공', m['air']),
-             ('산악 숙박', m['stay']), ('1인 요금', red(t['price']))]
+             ('산악 숙박', m['stay']), ('1인 요금 (항공 불포함)', f'{min(PRICE[key][0])}만원부터')]
     f = ''.join(f'<div class="fact"><span>{a}</span><b>{b}</b></div>' for a, b in facts)
     info = [('출발 인원', t['people']), ('숙소·차량', t['base']), ('포함', t['inc']), ('불포함', t['exc']), ('참고', t['note'])]
     dl = ''.join(f'<dt>{a}</dt><dd>{red(b)}</dd>' for a, b in info if b)
@@ -159,6 +180,9 @@ def trip(key, t):
 <div class="facts">{f}</div>
 <div class="acts"><a class="btn" href="index.html?course={m["course"]}">코스 지도에서 보기</a><button class="btn sec" id="open-sheet" type="button">일정표 미리보기</button><a class="btn sec" href="compare.html">일정 비교로 돌아가기</a></div>
 {sheet_modal(key, t)}
+<h2>인원별 1인 요금</h2>
+{price_table([key])}
+<p class="cap">{PRICE_NOTE}</p>
 <h2>일자별 일정</h2>
 {"".join(day_html(d) for d in t["days"])}
 <h2>일자별 고도</h2>
